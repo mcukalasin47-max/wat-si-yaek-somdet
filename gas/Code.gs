@@ -73,6 +73,8 @@ function handle_(req) {
       });
     if (action === "getActivityLog")
       return json_({ ok: true, data: listActivityLog_() });
+    if (action === "organizeAlbumFolders")
+      return json_({ ok: true, data: organizeAlbumFolders_() });
     throw new Error("ไม่พบคำสั่ง API ที่ร้องขอ");
   } catch (err) {
     return json_({ ok: false, message: err.message });
@@ -139,7 +141,7 @@ function setup() {
     "Detail",
   ]);
   if (settings.getLastRow() === 1)
-    settings.getRange(2, 1, 7, 3).setValues([
+    settings.getRange(2, 1, 9, 3).setValues([
       [
         "centerName",
         "ศูนย์ศึกษาพระพุทธศาสนาวันอาทิตย์ วัดสี่แยกสมเด็จ",
@@ -158,6 +160,8 @@ function setup() {
       ["logoUrl", "", "URL โลโก้"],
       ["bannerUrl", "", "URL แบนเนอร์"],
       ["historyImageUrl", "", "URL ภาพประวัติหลัก"],
+      ["phone", "", "โทรศัพท์ติดต่อ"],
+      ["facebookUrl", "", "Facebook"],
       [
         "historyFactsJSON",
         JSON.stringify(defaultHistoryFacts_()),
@@ -317,6 +321,8 @@ function saveAll_(data, options) {
       bannerUrl: "URL แบนเนอร์",
       historyImageUrl: "URL ภาพประวัติหลัก",
       mapAddress: "ที่อยู่สำหรับ Google Maps",
+      phone: "โทรศัพท์ติดต่อ",
+      facebookUrl: "Facebook",
     };
     const settings = data.settings || {};
     const sValues = Object.keys(descriptions).map((k) => [
@@ -468,8 +474,14 @@ function uploadImage_(p) {
   );
   let folderName = "ตั้งค่าเว็บไซต์";
   if (p.kind === "dimension") folderName = "ผลงาน_" + p.dimensionId;
-  if (p.kind === "albumCover" || p.kind === "albumImage")
-    folderName = "อัลบั้ม_" + p.dimensionId;
+  if (p.kind === "albumCover" || p.kind === "albumImage") {
+    const album = getAllData_().albums.find(
+      (x) => String(x.id) === String(p.dimensionId),
+    );
+    folderName = album
+      ? cleanFolderName_((album.date || "ไม่ระบุปี") + "_" + album.title)
+      : "อัลบั้ม_" + p.dimensionId;
+  }
   if (p.kind === "personnel") folderName = "ทำเนียบบุคลากร";
   if (p.kind === "award") folderName = "รางวัลที่ได้รับ";
   const folder = getOrCreateFolder_(root, folderName);
@@ -524,6 +536,42 @@ function findDuplicateFile_(folder, name, size) {
     if (Number(f.getSize()) === Number(size)) return f;
   }
   return null;
+}
+
+/**
+ * เปลี่ยนเฉพาะชื่อโฟลเดอร์อัลบั้มเดิมให้ตรงกับหน้าเว็บไซต์
+ * ไม่ลบ ไม่ย้าย และไม่อัปโหลดรูปภาพซ้ำ
+ */
+function organizeAlbumFolders_() {
+  const root = DriveApp.getFolderById(
+    PropertiesService.getScriptProperties().getProperty(APP.PROP_FOLDER_ID),
+  );
+  const albums = getAllData_().albums || [];
+  let renamed = 0;
+  albums.forEach(function (album) {
+    const oldName = "อัลบั้ม_" + album.id;
+    const targetName = cleanFolderName_(
+      (album.date || "ไม่ระบุปี") + "_" + (album.title || oldName),
+    );
+    const oldFolders = root.getFoldersByName(oldName);
+    if (oldFolders.hasNext()) {
+      oldFolders.next().setName(targetName);
+      renamed++;
+    }
+  });
+  logActivity_(
+    "ORGANIZE_FOLDERS",
+    "จัดชื่อโฟลเดอร์อัลบั้มสำเร็จ " + renamed + " โฟลเดอร์",
+  );
+  return { renamed: renamed, total: albums.length };
+}
+
+function cleanFolderName_(name) {
+  return String(name || "อัลบั้ม")
+    .replace(/[\\/:*?"<>|#%{}]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 function login_(password) {
