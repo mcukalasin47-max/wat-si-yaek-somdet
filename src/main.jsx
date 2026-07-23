@@ -39,6 +39,10 @@ import {
   HandCoins,
   FileText,
   Activity,
+  GripVertical,
+  Link as LinkIcon,
+  Paperclip,
+  Video,
 } from "lucide-react";
 import {
   Bar,
@@ -602,6 +606,24 @@ function TempleManagement({ data }) {
             );
           })}
         </div>
+        {!!projects.length && (
+          <div className="project-showcase">
+            <div className="project-showcase-heading">
+              <div><p className="eyebrow">หลักฐานเชิงประจักษ์</p><h3>โครงการและกิจกรรมสำคัญ</h3></div>
+              <span>{projects.length} รายการ</span>
+            </div>
+            <div className="project-showcase-grid">
+              {projects.map((project) => (
+                <article key={project.id}>
+                  <small>{project.period}</small>
+                  <h3>{project.title}</h3>
+                  <p>{project.description}</p>
+                  <RelatedAssets assets={project.assets} />
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
       <section id="abbots" className="section tinted directory-section">
         <p className="eyebrow">สืบทอดศรัทธาและการบริหาร</p>
@@ -617,6 +639,7 @@ function TempleManagement({ data }) {
                 <h3>{person.name}</h3>
                 <strong>{person.position}</strong>
                 <p>{person.description}</p>
+                <RelatedAssets assets={person.assets} compact />
               </div>
             </article>
           ))}
@@ -636,6 +659,7 @@ function TempleManagement({ data }) {
                 <h3>{person.name}</h3>
                 <strong>{person.rank || person.position}</strong>
                 <p>{person.duty || person.description}</p>
+                <RelatedAssets assets={person.assets} compact />
               </article>
             ))}
           </div>
@@ -1067,6 +1091,43 @@ function Dropzone({ label, onFile }) {
           </label>
         )}
       </div>
+    </div>
+  );
+}
+function AssetDropzone({ onFiles, busy = false }) {
+  const [drag, setDrag] = useState(false);
+  const send = (files) => {
+    const accepted = [...files].filter((file) =>
+      /^(image\/|video\/|application\/pdf$|application\/msword$|application\/vnd\.openxmlformats-officedocument|application\/vnd\.ms-excel|application\/vnd\.openxmlformats-officedocument\.spreadsheetml)/.test(file.type),
+    );
+    if (accepted.length) onFiles(accepted);
+  };
+  return (
+    <label
+      className={`asset-dropzone ${drag ? "dragging" : ""}`}
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => { e.preventDefault(); setDrag(false); send(e.dataTransfer.files); }}
+    >
+      <Paperclip />
+      <strong>{busy ? "กำลังอัปโหลด..." : "เพิ่มภาพ เอกสาร หรือวิดีโอ"}</strong>
+      <span>ลากไฟล์มาวาง หรือกดเลือกหลายไฟล์ (ไฟล์ละไม่เกิน 20 MB)</span>
+      <input type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => send(e.target.files)} />
+    </label>
+  );
+}
+function RelatedAssets({ assets = [], compact = false }) {
+  if (!assets.length) return null;
+  return (
+    <div className={`related-assets ${compact ? "compact" : ""}`}>
+      {assets.map((asset, index) => (
+        <a key={asset.fileId || asset.url || index} href={asset.url} target="_blank" rel="noreferrer">
+          {String(asset.type || "").startsWith("image/") ? (
+            <SmartImage src={asset.url} alt={asset.title || "ภาพประกอบ"} />
+          ) : String(asset.type || "").startsWith("video/") ? <Video /> : <FileText />}
+          <span>{asset.title || asset.name || `ไฟล์แนบ ${index + 1}`}</span>
+        </a>
+      ))}
     </div>
   );
 }
@@ -1618,6 +1679,7 @@ const registryMeta = {
 };
 function AdminTempleRegistry({ data, setData, upload }) {
   const [section, setSection] = useState("abbots");
+  const [dragged, setDragged] = useState(null);
   const meta = registryMeta[section];
   const list = data[section] || [];
   const update = (index, key, value) => {
@@ -1639,6 +1701,21 @@ function AdminTempleRegistry({ data, setData, upload }) {
     if (!(await confirmDelete(meta.title))) return;
     setData({ ...data, [section]: list.filter((_, i) => i !== index) });
   };
+  const move = (from, to) => {
+    if (from === null || from === to) return;
+    const next = [...list];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setData({ ...data, [section]: next });
+  };
+  const uploadAssets = async (files, item) => {
+    for (const file of files) await upload(file, "registryAsset", `${section}:${item.id}`);
+  };
+  const removeAsset = (itemIndex, assetIndex) => {
+    const assets = [...(list[itemIndex].assets || [])];
+    assets.splice(assetIndex, 1);
+    update(itemIndex, "assets", assets);
+  };
   return (
     <div>
       <div className="content-tabs registry-tabs">
@@ -1654,7 +1731,13 @@ function AdminTempleRegistry({ data, setData, upload }) {
         </div>
         <div className="registry-editor">
           {list.map((item, index) => (
-            <article key={item.id}>
+            <article key={item.id} draggable
+              className={dragged === index ? "sorting" : ""}
+              onDragStart={() => setDragged(index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => { move(dragged, index); setDragged(null); }}
+              onDragEnd={() => setDragged(null)}>
+              <div className="drag-handle" title="ลากเพื่อสลับลำดับ"><GripVertical /><span>ลากจัดลำดับ</span></div>
               {section !== "missions" && (
                 <div className="content-edit-image">
                   {item.imageUrl ? <SmartImage src={item.imageUrl} alt="" /> : <UserRound />}
@@ -1689,6 +1772,26 @@ function AdminTempleRegistry({ data, setData, upload }) {
                   </div>
                 )}
                 <textarea rows="3" value={item.description || ""} placeholder="รายละเอียดที่เหมาะสมสำหรับเผยแพร่" onChange={(e) => update(index, "description", e.target.value)} />
+                {section !== "missions" && (
+                  <div className="asset-manager">
+                    <AssetDropzone onFiles={(files) => uploadAssets(files, item)} />
+                    <div className="asset-editor-grid">
+                      {(item.assets || []).map((asset, assetIndex) => (
+                        <div key={asset.fileId || asset.url || assetIndex}>
+                          {String(asset.type || "").startsWith("image/") ? <SmartImage src={asset.url} alt="" /> : <FileText />}
+                          <input value={asset.title || asset.name || ""} aria-label="ชื่อไฟล์ที่แสดง"
+                            onChange={(e) => {
+                              const assets = [...(item.assets || [])];
+                              assets[assetIndex] = { ...asset, title: e.target.value };
+                              update(index, "assets", assets);
+                            }} />
+                          <a href={asset.url} target="_blank" rel="noreferrer"><LinkIcon /> เปิดไฟล์</a>
+                          <button type="button" onClick={() => removeAsset(index, assetIndex)}><Trash2 /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <label>สถานะ
                   <select value={item.status || "published"} onChange={(e) => update(index, "status", e.target.value)}>
                     <option value="published">เผยแพร่บนเว็บไซต์</option>
@@ -1930,7 +2033,7 @@ function AdminApp() {
         { ...encoded, kind, dimensionId },
         token,
       );
-      setNotice("อัปโหลดรูปภาพเรียบร้อยแล้ว");
+      setNotice(kind === "registryAsset" ? "เพิ่มไฟล์ประกอบเรียบร้อยแล้ว" : "อัปโหลดรูปภาพเรียบร้อยแล้ว");
       await load();
       return r;
     } catch (e) {

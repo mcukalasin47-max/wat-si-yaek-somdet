@@ -291,6 +291,14 @@ function getAllData_() {
   abbots.forEach((p) => (p.imageUrl = publicImageUrl_(p.imageUrl)));
   monastics.forEach((p) => (p.imageUrl = publicImageUrl_(p.imageUrl)));
   awards.forEach((a) => (a.imageUrl = publicImageUrl_(a.imageUrl)));
+  [abbots, monastics, projects].forEach(function (list) {
+    list.forEach(function (item) {
+      (item.assets || []).forEach(function (asset) {
+        if (/^image\//.test(asset.type || ""))
+          asset.url = publicImageUrl_(asset.url);
+      });
+    });
+  });
   return {
     settings: settings,
     historyFacts: historyFacts,
@@ -486,11 +494,14 @@ function listActivityLog_() {
 }
 
 function uploadImage_(p) {
-  if (!p.data || !p.name || !p.type || !/^image\//.test(p.type))
-    throw new Error("รองรับเฉพาะไฟล์รูปภาพ");
+  var allowed =
+    /^(image\/|video\/|application\/pdf$|application\/msword$|application\/vnd\.openxmlformats-officedocument|application\/vnd\.ms-excel|application\/vnd\.openxmlformats-officedocument\.spreadsheetml)/;
+  if (!p.data || !p.name || !p.type || !allowed.test(p.type))
+    throw new Error("รองรับไฟล์ภาพ วิดีโอ PDF Word และ Excel เท่านั้น");
   const bytes = Utilities.base64Decode(p.data);
-  if (bytes.length > 8 * 1024 * 1024)
-    throw new Error("ไฟล์ต้องมีขนาดไม่เกิน 8 MB");
+  const isRegistryAsset = p.kind === "registryAsset";
+  if (bytes.length > (isRegistryAsset ? 20 : 8) * 1024 * 1024)
+    throw new Error("ไฟล์มีขนาดใหญ่เกินกว่าที่ระบบกำหนด");
   const root = DriveApp.getFolderById(
     PropertiesService.getScriptProperties().getProperty(APP.PROP_FOLDER_ID),
   );
@@ -508,6 +519,15 @@ function uploadImage_(p) {
   if (p.kind === "abbot") folderName = "ทำเนียบเจ้าอาวาส";
   if (p.kind === "monastic") folderName = "ทำเนียบพระภิกษุสามเณร";
   if (p.kind === "award") folderName = "รางวัลที่ได้รับ";
+  if (isRegistryAsset) {
+    var registryParts = String(p.dimensionId || "").split(":");
+    var registryFolders = {
+      abbots: "ทำเนียบเจ้าอาวาส",
+      monastics: "ทำเนียบพระภิกษุสามเณร",
+      projects: "โครงการและกิจกรรม",
+    };
+    folderName = registryFolders[registryParts[0]] || "คลังสื่อทะเบียนกลาง";
+  }
   const folder = getOrCreateFolder_(root, folderName);
   const duplicate = findDuplicateFile_(folder, p.name, bytes.length);
   if (duplicate)
@@ -516,7 +536,9 @@ function uploadImage_(p) {
     );
   const file = folder.createFile(Utilities.newBlob(bytes, p.type, p.name));
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const url = "https://lh3.googleusercontent.com/d/" + file.getId() + "=w2000";
+  const url = /^image\//.test(p.type)
+    ? "https://lh3.googleusercontent.com/d/" + file.getId() + "=w2000"
+    : "https://drive.google.com/file/d/" + file.getId() + "/view";
   const data = getAllData_();
   if (p.kind === "logo") data.settings.logoUrl = url;
   else if (p.kind === "banner") data.settings.bannerUrl = url;
@@ -552,6 +574,23 @@ function uploadImage_(p) {
     const award = data.awards.find((x) => x.id === p.dimensionId);
     if (!award) throw new Error("ไม่พบรายการรางวัล");
     award.imageUrl = url;
+  } else if (isRegistryAsset) {
+    var parts = String(p.dimensionId || "").split(":");
+    var collection = data[parts[0]];
+    if (!collection || !Array.isArray(collection))
+      throw new Error("ไม่พบประเภททะเบียนสำหรับไฟล์แนบ");
+    var record = collection.find(function (item) {
+      return String(item.id) === String(parts.slice(1).join(":"));
+    });
+    if (!record) throw new Error("ไม่พบรายการสำหรับแนบไฟล์");
+    record.assets = record.assets || [];
+    record.assets.push({
+      title: p.name.replace(/\.[^.]+$/, ""),
+      name: p.name,
+      type: p.type,
+      url: url,
+      fileId: file.getId(),
+    });
   } else throw new Error("ประเภทการอัปโหลดไม่ถูกต้อง");
   saveAll_(data, { reason: "สำรองก่อนอัปโหลดภาพ " + p.name, action: "UPLOAD" });
   logActivity_("UPLOAD", "อัปโหลดภาพ " + p.name + " ไปยัง " + folderName);
