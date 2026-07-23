@@ -173,9 +173,9 @@ function setup() {
   if (timeline.getLastRow() === 1)
     timeline.getRange(2, 1, 4, 5).setValues([
       [
-        "พ.ศ. 2428",
-        "จุดเริ่มต้นของวัด",
-        "วางรากฐานศาสนสถานและศูนย์รวมศรัทธาของชุมชน",
+        "พ.ศ. 2512",
+        "ตั้งวัดสี่แยกสมเด็จ",
+        "เริ่มวางรากฐานศาสนสถานและเป็นศูนย์รวมศรัทธาของชุมชน",
         1,
         true,
       ],
@@ -252,10 +252,18 @@ function getAllData_() {
   );
   const albums = safeJson_(settings.albumsJSON, defaultAlbums_());
   const personnel = safeJson_(settings.personnelJSON, defaultPersonnel_());
+  const abbots = safeJson_(settings.abbotsJSON, defaultAbbots_());
+  const monastics = safeJson_(settings.monasticsJSON, []);
+  const missions = safeJson_(settings.missionsJSON, defaultMissions_());
+  const projects = safeJson_(settings.projectsJSON, []);
   const awards = safeJson_(settings.awardsJSON, defaultAwards_());
   delete settings.historyFactsJSON;
   delete settings.albumsJSON;
   delete settings.personnelJSON;
+  delete settings.abbotsJSON;
+  delete settings.monasticsJSON;
+  delete settings.missionsJSON;
+  delete settings.projectsJSON;
   delete settings.awardsJSON;
   const timeline = rows_(ss.getSheetByName(APP.SHEETS.TIMELINE))
     .filter((r) => truthy_(r.Active))
@@ -280,12 +288,18 @@ function getAllData_() {
     (a.images || []).forEach((im) => (im.url = publicImageUrl_(im.url)));
   });
   personnel.forEach((p) => (p.imageUrl = publicImageUrl_(p.imageUrl)));
+  abbots.forEach((p) => (p.imageUrl = publicImageUrl_(p.imageUrl)));
+  monastics.forEach((p) => (p.imageUrl = publicImageUrl_(p.imageUrl)));
   awards.forEach((a) => (a.imageUrl = publicImageUrl_(a.imageUrl)));
   return {
     settings: settings,
     historyFacts: historyFacts,
     albums: albums,
     personnel: personnel,
+    abbots: abbots,
+    monastics: monastics,
+    missions: missions,
+    projects: projects,
     awards: awards,
     dimensions: dimensions,
     timeline: timeline,
@@ -295,7 +309,7 @@ function getAllData_() {
 
 function getPublicData_() {
   const data = getAllData_();
-  ["albums", "personnel", "awards"].forEach(
+  ["albums", "personnel", "abbots", "monastics", "missions", "projects", "awards"].forEach(
     (key) =>
       (data[key] = (data[key] || []).filter((item) => item.status !== "draft")),
   );
@@ -345,6 +359,14 @@ function saveAll_(data, options) {
       JSON.stringify(data.personnel || []),
       "ข้อมูลบุคลากร JSON",
     ]);
+    [
+      ["abbotsJSON", data.abbots || defaultAbbots_(), "ข้อมูลทำเนียบเจ้าอาวาส JSON"],
+      ["monasticsJSON", data.monastics || [], "ข้อมูลพระภิกษุสามเณร JSON"],
+      ["missionsJSON", data.missions || defaultMissions_(), "ข้อมูล 6 พันธกิจ JSON"],
+      ["projectsJSON", data.projects || [], "ข้อมูลโครงการและกิจกรรม JSON"],
+    ].forEach(function (item) {
+      sValues.push([item[0], JSON.stringify(item[1]), item[2]]);
+    });
     sValues.push([
       "awardsJSON",
       JSON.stringify(data.awards || []),
@@ -483,6 +505,8 @@ function uploadImage_(p) {
       : "อัลบั้ม_" + p.dimensionId;
   }
   if (p.kind === "personnel") folderName = "ทำเนียบบุคลากร";
+  if (p.kind === "abbot") folderName = "ทำเนียบเจ้าอาวาส";
+  if (p.kind === "monastic") folderName = "ทำเนียบพระภิกษุสามเณร";
   if (p.kind === "award") folderName = "รางวัลที่ได้รับ";
   const folder = getOrCreateFolder_(root, folderName);
   const duplicate = findDuplicateFile_(folder, p.name, bytes.length);
@@ -518,6 +542,11 @@ function uploadImage_(p) {
   } else if (p.kind === "personnel") {
     const person = data.personnel.find((x) => x.id === p.dimensionId);
     if (!person) throw new Error("ไม่พบบุคลากร");
+    person.imageUrl = url;
+  } else if (p.kind === "abbot" || p.kind === "monastic") {
+    const list = p.kind === "abbot" ? data.abbots : data.monastics;
+    const person = list.find((x) => x.id === p.dimensionId);
+    if (!person) throw new Error("ไม่พบรายนามในทำเนียบ");
     person.imageUrl = url;
   } else if (p.kind === "award") {
     const award = data.awards.find((x) => x.id === p.dimensionId);
@@ -691,7 +720,8 @@ function defaultHistoryFacts_() {
       value: "บ้านสี่แยกสมเด็จ หมู่ที่ 6 จังหวัดกาฬสินธุ์",
     },
     { icon: "landmark", label: "เนื้อที่", value: "11 ไร่ 2 งาน 80 ตารางวา" },
-    { icon: "calendar", label: "ปีที่ตั้งวัด", value: "พ.ศ. 2532" },
+    { icon: "calendar", label: "ปีที่ตั้งวัด", value: "พ.ศ. 2512" },
+    { icon: "landmark", label: "วิสุงคามสีมา", value: "พ.ศ. 2517 ขนาด 40 × 80 เมตร" },
     { icon: "book", label: "พระปริยัติธรรม", value: "แผนกธรรมและแผนกบาลี" },
     {
       icon: "education",
@@ -722,12 +752,46 @@ function defaultPersonnel_() {
   return [
     {
       id: "person-1",
-      name: "พระมหาคณพิชญ์ศุภ สุมงฺคโล",
-      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ และผู้อำนวยการศูนย์ฯ",
+      name: "พระครูอุดมธรรมวุฒิ",
+      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ",
       description: "ผู้บริหารศูนย์ศึกษาพระพุทธศาสนาวันอาทิตย์วัดสี่แยกสมเด็จ",
       imageUrl: "",
     },
   ];
+}
+function defaultAbbots_() {
+  return [
+    {
+      id: "abbot-current",
+      name: "พระครูอุดมธรรมวุฒิ",
+      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ",
+      period: "เจ้าอาวาสรูปปัจจุบัน",
+      description: "บริหารกิจการวัดและงานคณะสงฆ์ตามหลักพระธรรมวินัยและธรรมาภิบาล",
+      imageUrl: "",
+      status: "published",
+    },
+    {
+      id: "abbot-first",
+      name: "พระครูสุนทรสีลสิกข์",
+      position: "อดีตเจ้าอาวาส",
+      period: "เจ้าอาวาสรูปแรก",
+      description: "ผู้วางรากฐานการพัฒนาวัดสี่แยกสมเด็จ",
+      imageUrl: "",
+      status: "published",
+    },
+  ];
+}
+function defaultMissions_() {
+  return [
+    ["governance", "การปกครองคณะสงฆ์", "บริหารงานคณะสงฆ์อย่างเป็นระบบ โปร่งใส และยึดพระธรรมวินัย", "งาน/โครงการ"],
+    ["religious-study", "การศาสนศึกษา", "ส่งเสริมการศึกษาพระปริยัติธรรมและพัฒนาศาสนทายาท", "ผู้เรียน"],
+    ["education-support", "การศึกษาสงเคราะห์", "สนับสนุนเด็ก เยาวชน และประชาชนให้เข้าถึงโอกาสทางการศึกษา", "ผู้รับประโยชน์"],
+    ["propagation", "การเผยแผ่พระพุทธศาสนา", "เผยแผ่หลักธรรมผ่านกิจกรรม ชุมชน และสื่อดิจิทัล", "กิจกรรม"],
+    ["public-utilities", "การสาธารณูปการ", "ดูแลศาสนสถาน อาคาร ภูมิทัศน์ และศาสนสมบัติ", "รายการพัฒนา"],
+    ["public-welfare", "การสาธารณสงเคราะห์", "เกื้อกูลชุมชน บรรเทาความเดือดร้อน และสร้างเครือข่ายจิตอาสา", "ผู้รับประโยชน์"],
+  ].map(function (row) {
+    return { id: row[0], title: row[1], description: row[2], statValue: 0, statLabel: row[3], status: "published" };
+  });
 }
 function defaultAwards_() {
   return [

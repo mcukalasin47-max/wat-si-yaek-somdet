@@ -33,6 +33,12 @@ import {
   UserRound,
   Users,
   X,
+  HeartHandshake,
+  Megaphone,
+  Wrench,
+  HandCoins,
+  FileText,
+  Activity,
 } from "lucide-react";
 import {
   Bar,
@@ -46,6 +52,7 @@ import {
 } from "recharts";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation, Pagination } from "swiper/modules";
+import Swal from "sweetalert2";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
@@ -53,10 +60,38 @@ import "./styles.css";
 
 const API_URL = import.meta.env.VITE_GAS_API_URL || "";
 const OFFICIAL_LOGO = "/assets/center-logo.png";
+const templeAlert = Swal.mixin({
+  customClass: {
+    popup: "temple-alert",
+    confirmButton: "temple-alert-confirm",
+    cancelButton: "temple-alert-cancel",
+  },
+  buttonsStyling: false,
+  reverseButtons: true,
+});
+const confirmAction = async ({
+  title,
+  text,
+  confirmText = "ยืนยันดำเนินการ",
+  icon = "warning",
+}) => {
+  const result = await templeAlert.fire({
+    title,
+    html: `<div class="alert-seal">ธ</div><p>${text}</p>`,
+    icon,
+    showCancelButton: true,
+    confirmButtonText: confirmText,
+    cancelButtonText: "ยกเลิก",
+    allowOutsideClick: false,
+  });
+  return result.isConfirmed;
+};
 const confirmDelete = (label = "รายการนี้") =>
-  window.confirm(
-    `ยืนยันการลบ${label}?\n\nระบบจะยังไม่ลบจริงจนกว่าจะกด “บันทึกข้อมูล”`,
-  );
+  confirmAction({
+    title: `ลบ${label}หรือไม่?`,
+    text: "รายการจะถูกนำออกเมื่อกดบันทึกการเปลี่ยนแปลง และระบบจะสร้างชุดสำรองก่อนบันทึกอัตโนมัติ",
+    confirmText: "นำรายการออก",
+  });
 const dimensions = [
   {
     id: "education",
@@ -106,7 +141,8 @@ const fallback = {
       value: "บ้านสี่แยกสมเด็จ หมู่ที่ 6 จังหวัดกาฬสินธุ์",
     },
     { icon: "landmark", label: "เนื้อที่", value: "11 ไร่ 2 งาน 80 ตารางวา" },
-    { icon: "calendar", label: "ปีที่ตั้งวัด", value: "พ.ศ. 2532" },
+    { icon: "calendar", label: "ปีที่ตั้งวัด", value: "พ.ศ. 2512" },
+    { icon: "landmark", label: "วิสุงคามสีมา", value: "พ.ศ. 2517 ขนาด 40 × 80 เมตร" },
     { icon: "book", label: "พระปริยัติธรรม", value: "แผนกธรรมและแผนกบาลี" },
     {
       icon: "education",
@@ -121,9 +157,9 @@ const fallback = {
   ],
   timeline: [
     {
-      year: "พ.ศ. 2428",
-      title: "จุดเริ่มต้นของวัด",
-      detail: "วางรากฐานศาสนสถานและศูนย์รวมศรัทธาของชุมชน",
+      year: "พ.ศ. 2512",
+      title: "ตั้งวัดสี่แยกสมเด็จ",
+      detail: "เริ่มวางรากฐานศาสนสถานและเป็นศูนย์รวมศรัทธาของชุมชน",
     },
     {
       year: "พ.ศ. 2548",
@@ -161,12 +197,40 @@ const fallback = {
   personnel: [
     {
       id: "person-1",
-      name: "พระมหาคณพิชญ์ศุภ สุมงฺคโล",
-      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ และผู้อำนวยการศูนย์ฯ",
+      name: "พระครูอุดมธรรมวุฒิ",
+      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ",
       description: "ผู้บริหารศูนย์ศึกษาพระพุทธศาสนาวันอาทิตย์วัดสี่แยกสมเด็จ",
       imageUrl: "",
     },
   ],
+  abbots: [
+    {
+      id: "abbot-current",
+      name: "พระครูอุดมธรรมวุฒิ",
+      position: "เจ้าอาวาสวัดสี่แยกสมเด็จ",
+      period: "เจ้าอาวาสรูปปัจจุบัน",
+      description: "บริหารกิจการวัดและงานคณะสงฆ์ตามหลักพระธรรมวินัยและธรรมาภิบาล",
+      imageUrl: "",
+    },
+    {
+      id: "abbot-first",
+      name: "พระครูสุนทรสีลสิกข์",
+      position: "อดีตเจ้าอาวาส",
+      period: "เจ้าอาวาสรูปแรก",
+      description: "ผู้วางรากฐานการพัฒนาวัดสี่แยกสมเด็จ",
+      imageUrl: "",
+    },
+  ],
+  monastics: [],
+  missions: [
+    { id: "governance", title: "การปกครองคณะสงฆ์", description: "บริหารงานคณะสงฆ์อย่างเป็นระบบ โปร่งใส และยึดพระธรรมวินัย", statValue: 0, statLabel: "งาน/โครงการ" },
+    { id: "religious-study", title: "การศาสนศึกษา", description: "ส่งเสริมการศึกษาพระปริยัติธรรมและพัฒนาศาสนทายาท", statValue: 0, statLabel: "ผู้เรียน" },
+    { id: "education-support", title: "การศึกษาสงเคราะห์", description: "สนับสนุนเด็ก เยาวชน และประชาชนให้เข้าถึงโอกาสทางการศึกษา", statValue: 0, statLabel: "ผู้รับประโยชน์" },
+    { id: "propagation", title: "การเผยแผ่พระพุทธศาสนา", description: "เผยแผ่หลักธรรมผ่านกิจกรรม ชุมชน และสื่อดิจิทัล", statValue: 0, statLabel: "กิจกรรม" },
+    { id: "public-utilities", title: "การสาธารณูปการ", description: "ดูแลศาสนสถาน อาคาร ภูมิทัศน์ และศาสนสมบัติ", statValue: 0, statLabel: "รายการพัฒนา" },
+    { id: "public-welfare", title: "การสาธารณสงเคราะห์", description: "เกื้อกูลชุมชน บรรเทาความเดือดร้อน และสร้างเครือข่ายจิตอาสา", statValue: 0, statLabel: "ผู้รับประโยชน์" },
+  ],
+  projects: [],
   awards: [
     {
       id: "award-1",
@@ -327,6 +391,9 @@ function Header({ admin = false, onLogout }) {
         {!admin && (
           <>
             <a href="#gallery">ภาพกิจกรรม</a>
+            <a href="#temple-missions">6 พันธกิจ</a>
+            <a href="#abbots">ทำเนียบเจ้าอาวาส</a>
+            <a href="#monastics">พระภิกษุ–สามเณร</a>
             <a href="#personnel">ทำเนียบบุคลากร</a>
             <a href="#awards">รางวัล</a>
           </>
@@ -489,6 +556,96 @@ function HistorySection({ data, s }) {
     </section>
   );
 }
+const missionIcons = [
+  Landmark,
+  BookOpen,
+  GraduationCap,
+  Megaphone,
+  Wrench,
+  HeartHandshake,
+];
+function TempleManagement({ data }) {
+  const missions = data.missions?.length ? data.missions : fallback.missions;
+  const abbots = data.abbots?.length ? data.abbots : fallback.abbots;
+  const monastics = data.monastics || [];
+  const projects = data.projects || [];
+  const beneficiaries = missions.reduce(
+    (sum, item) => sum + (Number(item.statValue) || 0),
+    0,
+  );
+  return (
+    <>
+      <section id="temple-missions" className="section temple-platform">
+        <p className="eyebrow">วัดบริหารจัดการดิจิทัล</p>
+        <h2>ศูนย์กลางการบริหารงานวัดและคณะสงฆ์</h2>
+        <p className="section-sub">
+          วัดสี่แยกสมเด็จดำเนินงานครบทั้ง 6 พันธกิจของคณะสงฆ์
+          เชื่อมข้อมูล โครงการ หลักฐาน และผลลัพธ์ไว้ในระบบเดียว
+        </p>
+        <div className="executive-strip">
+          <article><Activity /><strong>{projects.length}</strong><span>โครงการและกิจกรรม</span></article>
+          <article><Users /><strong>{monastics.length}</strong><span>พระภิกษุ–สามเณร</span></article>
+          <article><HandCoins /><strong>{beneficiaries}</strong><span>ผลลัพธ์รวมตามพันธกิจ</span></article>
+          <article><FileText /><strong>6</strong><span>พันธกิจหลัก</span></article>
+        </div>
+        <div className="mission-grid">
+          {missions.map((mission, index) => {
+            const Icon = missionIcons[index] || Landmark;
+            return (
+              <motion.article key={mission.id} whileHover={{ y: -6 }}>
+                <span className="mission-icon"><Icon /></span>
+                <small>พันธกิจที่ {index + 1}</small>
+                <h3>{mission.title}</h3>
+                <p>{mission.description}</p>
+                <strong>{Number(mission.statValue) || 0} {mission.statLabel}</strong>
+              </motion.article>
+            );
+          })}
+        </div>
+      </section>
+      <section id="abbots" className="section tinted directory-section">
+        <p className="eyebrow">สืบทอดศรัทธาและการบริหาร</p>
+        <h2>ทำเนียบเจ้าอาวาส</h2>
+        <div className="abbot-grid">
+          {abbots.map((person) => (
+            <article key={person.id}>
+              <div className="portrait">
+                {person.imageUrl ? <SmartImage src={person.imageUrl} alt={person.name} /> : <UserRound />}
+              </div>
+              <div>
+                <small>{person.period}</small>
+                <h3>{person.name}</h3>
+                <strong>{person.position}</strong>
+                <p>{person.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section id="monastics" className="section directory-section">
+        <p className="eyebrow">ศาสนทายาทของวัด</p>
+        <h2>ทำเนียบพระภิกษุ–สามเณร</h2>
+        <p className="section-sub">เผยแพร่เฉพาะข้อมูลที่เหมาะสม ส่วนข้อมูลทะเบียนละเอียดสงวนไว้สำหรับผู้ดูแล</p>
+        {monastics.length ? (
+          <div className="monastic-grid">
+            {monastics.map((person) => (
+              <article key={person.id}>
+                <div className="portrait">
+                  {person.imageUrl ? <SmartImage src={person.imageUrl} alt={person.name} /> : <UserRound />}
+                </div>
+                <h3>{person.name}</h3>
+                <strong>{person.rank || person.position}</strong>
+                <p>{person.duty || person.description}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="directory-empty"><Users /><p>ผู้ดูแลสามารถเพิ่มรายนามพระภิกษุ–สามเณรได้จากระบบหลังบ้าน</p></div>
+        )}
+      </section>
+    </>
+  );
+}
 function EvidenceSections({ data, s }) {
   const [album, setAlbum] = useState(null),
     [query, setQuery] = useState(""),
@@ -529,7 +686,13 @@ function EvidenceSections({ data, s }) {
     };
     if (navigator.share) return navigator.share(detail);
     await navigator.clipboard.writeText(detail.url);
-    window.alert("คัดลอกลิงก์เว็บไซต์แล้ว");
+    await templeAlert.fire({
+      title: "คัดลอกลิงก์แล้ว",
+      text: "พร้อมนำไปประชาสัมพันธ์ผ่าน Facebook หรือ LINE",
+      icon: "success",
+      timer: 1800,
+      showConfirmButton: false,
+    });
   };
   const mapQuery = encodeURIComponent(
     s.mapAddress || "วัดสี่แยกสมเด็จ ตำบลสมเด็จ อำเภอสมเด็จ จังหวัดกาฬสินธุ์",
@@ -786,6 +949,7 @@ function PublicApp() {
           </motion.div>
         </section>
         <HistorySection data={data} s={s} />
+        <TempleManagement data={data} />
         <section className="stats-band">
           <div className="quick-stats">
             {(data.quickStats || []).map((x, i) => (
@@ -1087,8 +1251,8 @@ function AdminHistory({ data, setData, upload }) {
               />
               <button
                 className="icon-danger"
-                onClick={() => {
-                  if (!confirmDelete("การ์ดข้อมูลนี้")) return;
+                onClick={async () => {
+                  if (!(await confirmDelete("การ์ดข้อมูลนี้"))) return;
                   setData({
                     ...data,
                     historyFacts: facts.filter((_, x) => x !== i),
@@ -1147,8 +1311,8 @@ function AdminHistory({ data, setData, upload }) {
               />
               <button
                 className="icon-danger"
-                onClick={() => {
-                  if (!confirmDelete("เหตุการณ์นี้")) return;
+                onClick={async () => {
+                  if (!(await confirmDelete("เหตุการณ์นี้"))) return;
                   setData({
                     ...data,
                     timeline: timeline.filter((_, x) => x !== i),
@@ -1412,8 +1576,8 @@ function AdminContent({ data, setData, upload }) {
                           />
                           <button
                             className="icon-danger"
-                            onClick={() => {
-                              if (!confirmDelete("ภาพนี้")) return;
+                            onClick={async () => {
+                              if (!(await confirmDelete("ภาพนี้"))) return;
                               const a = [...list];
                               a[i] = {
                                 ...item,
@@ -1431,8 +1595,8 @@ function AdminContent({ data, setData, upload }) {
                 )}
                 <button
                   className="icon-danger delete-row"
-                  onClick={() => {
-                    if (!confirmDelete("รายการนี้")) return;
+                  onClick={async () => {
+                    if (!(await confirmDelete("รายการนี้"))) return;
                     setData({ ...data, [sub]: list.filter((_, x) => x !== i) });
                   }}
                 >
@@ -1441,6 +1605,101 @@ function AdminContent({ data, setData, upload }) {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+const registryMeta = {
+  abbots: { title: "ทำเนียบเจ้าอาวาส", icon: Landmark, name: "ชื่อ–ฉายา", secondary: "ช่วงเวลาการดำรงตำแหน่ง" },
+  monastics: { title: "ทะเบียนพระภิกษุ–สามเณร", icon: Users, name: "ชื่อ–ฉายา", secondary: "สมณศักดิ์/สถานะ" },
+  missions: { title: "ข้อมูล 6 พันธกิจ", icon: Activity, name: "ชื่อพันธกิจ", secondary: "หน่วยนับผลลัพธ์" },
+  projects: { title: "ทะเบียนโครงการและกิจกรรม", icon: FileText, name: "ชื่อโครงการ/กิจกรรม", secondary: "ปี/วันที่ดำเนินงาน" },
+};
+function AdminTempleRegistry({ data, setData, upload }) {
+  const [section, setSection] = useState("abbots");
+  const meta = registryMeta[section];
+  const list = data[section] || [];
+  const update = (index, key, value) => {
+    const next = [...list];
+    next[index] = { ...next[index], [key]: value };
+    setData({ ...data, [section]: next });
+  };
+  const add = () => {
+    const base = { id: `${section}-${Date.now()}`, status: "published", description: "", imageUrl: "" };
+    const item =
+      section === "missions"
+        ? { ...base, title: "ชื่อพันธกิจ", statValue: 0, statLabel: "รายการ" }
+        : section === "projects"
+          ? { ...base, title: "ชื่อโครงการ", period: "พ.ศ. 2569", missionId: "governance" }
+          : { ...base, name: "ชื่อ–ฉายา", position: "", period: "", rank: "", duty: "" };
+    setData({ ...data, [section]: [...list, item] });
+  };
+  const remove = async (index) => {
+    if (!(await confirmDelete(meta.title))) return;
+    setData({ ...data, [section]: list.filter((_, i) => i !== index) });
+  };
+  return (
+    <div>
+      <div className="content-tabs registry-tabs">
+        {Object.entries(registryMeta).map(([key, item]) => {
+          const Icon = item.icon;
+          return <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon />{item.title}</button>;
+        })}
+      </div>
+      <section className="panel">
+        <div className="section-admin-title">
+          <div><h2>{meta.title}</h2><p>เพิ่ม แก้ไข จัดลำดับ และกำหนดสถานะเผยแพร่ได้จากหน้าเดียว</p></div>
+          <button className="secondary" onClick={add}>+ เพิ่มรายการ</button>
+        </div>
+        <div className="registry-editor">
+          {list.map((item, index) => (
+            <article key={item.id}>
+              {section !== "missions" && (
+                <div className="content-edit-image">
+                  {item.imageUrl ? <SmartImage src={item.imageUrl} alt="" /> : <UserRound />}
+                  {(section === "abbots" || section === "monastics") && (
+                    <Dropzone label="อัปโหลดภาพ" onFile={(file) => upload(file, section === "abbots" ? "abbot" : "monastic", item.id)} />
+                  )}
+                </div>
+              )}
+              <div className="content-edit-fields">
+                <small>ลำดับที่ {index + 1}</small>
+                <input value={item.name || item.title || ""} placeholder={meta.name}
+                  onChange={(e) => update(index, item.name !== undefined ? "name" : "title", e.target.value)} />
+                {section === "missions" ? (
+                  <div className="form-grid compact">
+                    <label>ผลลัพธ์<input type="number" min="0" value={item.statValue || 0} onChange={(e) => update(index, "statValue", Number(e.target.value))} /></label>
+                    <label>{meta.secondary}<input value={item.statLabel || ""} onChange={(e) => update(index, "statLabel", e.target.value)} /></label>
+                  </div>
+                ) : section === "projects" ? (
+                  <div className="form-grid compact">
+                    <label>{meta.secondary}<input value={item.period || ""} onChange={(e) => update(index, "period", e.target.value)} /></label>
+                    <label>พันธกิจ
+                      <select value={item.missionId || "governance"} onChange={(e) => update(index, "missionId", e.target.value)}>
+                        {(data.missions || fallback.missions).map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="form-grid compact">
+                    <label>ตำแหน่ง/สถานะ<input value={item.position || item.rank || ""} onChange={(e) => update(index, section === "monastics" ? "rank" : "position", e.target.value)} /></label>
+                    <label>{meta.secondary}<input value={item.period || ""} onChange={(e) => update(index, "period", e.target.value)} /></label>
+                    {section === "monastics" && <label>หน้าที่รับผิดชอบ<input value={item.duty || ""} onChange={(e) => update(index, "duty", e.target.value)} /></label>}
+                  </div>
+                )}
+                <textarea rows="3" value={item.description || ""} placeholder="รายละเอียดที่เหมาะสมสำหรับเผยแพร่" onChange={(e) => update(index, "description", e.target.value)} />
+                <label>สถานะ
+                  <select value={item.status || "published"} onChange={(e) => update(index, "status", e.target.value)}>
+                    <option value="published">เผยแพร่บนเว็บไซต์</option>
+                    <option value="draft">ฉบับร่าง/ข้อมูลภายใน</option>
+                  </select>
+                </label>
+                <button className="icon-danger delete-row" onClick={() => remove(index)}><Trash2 /> ลบรายการ</button>
+              </div>
+            </article>
+          ))}
+          {!list.length && <p className="empty-state">ยังไม่มีข้อมูล กด “เพิ่มรายการ” เพื่อเริ่มบันทึก</p>}
         </div>
       </section>
     </div>
@@ -1469,12 +1728,12 @@ function AdminSafety({ token, reload, setNotice }) {
     loadSafety();
   }, []);
   const restore = async (backup) => {
-    if (
-      !window.confirm(
-        `ยืนยันกู้คืนข้อมูลจากชุด ${backup.id}?\nระบบจะสำรองข้อมูลปัจจุบันให้อัตโนมัติก่อนกู้คืน`,
-      )
-    )
-      return;
+    if (!(await confirmAction({
+      title: "กู้คืนข้อมูลจากชุดสำรองนี้หรือไม่?",
+      text: `ชุดสำรอง ${backup.id}<br>ระบบจะสำรองข้อมูลปัจจุบันไว้อีกหนึ่งชุดก่อนเริ่มกู้คืน เพื่อให้ย้อนกลับได้อย่างปลอดภัย`,
+      confirmText: "สำรองและกู้คืน",
+      icon: "question",
+    }))) return;
     setBusy(true);
     try {
       await api("restoreBackup", { id: backup.id }, token);
@@ -1488,12 +1747,12 @@ function AdminSafety({ token, reload, setNotice }) {
     }
   };
   const organizeFolders = async () => {
-    if (
-      !window.confirm(
-        "ยืนยันจัดชื่อโฟลเดอร์อัลบั้มให้ตรงกับชื่อบนเว็บไซต์?\nระบบจะเปลี่ยนเฉพาะชื่อโฟลเดอร์ ไม่ลบหรือย้ายรูปภาพ",
-      )
-    )
-      return;
+    if (!(await confirmAction({
+      title: "จัดระเบียบโฟลเดอร์อัลบั้มหรือไม่?",
+      text: "ระบบจะปรับเฉพาะชื่อโฟลเดอร์ให้ตรงกับเว็บไซต์ โดยไม่ลบหรือย้ายรูปภาพ",
+      confirmText: "จัดระเบียบโฟลเดอร์",
+      icon: "question",
+    }))) return;
     setBusy(true);
     try {
       const result = await api("organizeAlbumFolders", {}, token);
@@ -1751,6 +2010,13 @@ function AdminApp() {
             สื่อ บุคลากร และรางวัล
           </button>
           <button
+            className={tab === "temple" ? "active" : ""}
+            onClick={() => setTab("temple")}
+          >
+            <Landmark />
+            งานวัดและคณะสงฆ์
+          </button>
+          <button
             className={tab === "dimensions" ? "active" : ""}
             onClick={() => setTab("dimensions")}
           >
@@ -1773,6 +2039,8 @@ function AdminApp() {
                     ? "จัดการประวัติและข้อมูลสำคัญ"
                     : tab === "content"
                       ? "สื่อ บุคลากร รางวัล และแผนที่"
+                      : tab === "temple"
+                        ? "ศูนย์บริหารงานวัดและคณะสงฆ์"
                       : tab === "dimensions"
                         ? "การจัดการข้อมูล 5 ด้าน"
                         : "ศูนย์ความปลอดภัยข้อมูล"}
@@ -1855,6 +2123,8 @@ function AdminApp() {
             <AdminHistory data={data} setData={setData} upload={upload} />
           ) : tab === "content" ? (
             <AdminContent data={data} setData={setData} upload={upload} />
+          ) : tab === "temple" ? (
+            <AdminTempleRegistry data={data} setData={setData} upload={upload} />
           ) : tab === "dimensions" ? (
             <div className="admin-dimensions">
               {data.dimensions.map((d, idx) => (
@@ -1915,8 +2185,8 @@ function AdminApp() {
                         />
                         <button
                           className="icon-danger"
-                          onClick={() => {
-                            if (!confirmDelete("ข้อมูลกราฟนี้")) return;
+                          onClick={async () => {
+                            if (!(await confirmDelete("ข้อมูลกราฟนี้"))) return;
                             const a = [...data.dimensions];
                             a[idx] = {
                               ...d,
@@ -1967,8 +2237,8 @@ function AdminApp() {
                         />
                         <button
                           className="icon-danger"
-                          onClick={() => {
-                            if (!confirmDelete("ภาพผลงานนี้")) return;
+                          onClick={async () => {
+                            if (!(await confirmDelete("ภาพผลงานนี้"))) return;
                             const a = [...data.dimensions];
                             a[idx] = {
                               ...d,

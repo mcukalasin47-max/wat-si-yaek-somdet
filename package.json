@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
     "framer-motion": "latest",
     "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
     "recharts": "latest",
-    "swiper": "latest"
-  },
-  "devDependencies": {}
+    "sweetalert2": "^11.26.25",
+    "swiper": "latest",
+    "vite": "latest"
+  }
 }

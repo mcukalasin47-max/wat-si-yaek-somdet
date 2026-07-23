@@ -1670,3 +1670,22 @@ textarea:focus-visible {
     width: 100%;
   }
 }
+/* V14 — Temple Management & Sangha Directory */
+.temple-platform{position:relative;background:linear-gradient(145deg,#fff 0%,#fffaf1 100%)}
+.executive-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:28px 0}
+.executive-strip article{display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 14px;border:1px solid #ead8b7;border-radius:20px;background:#fff;box-shadow:0 12px 35px rgba(73,35,15,.07)}
+.executive-strip svg{color:#8b1538;margin-bottom:8px}.executive-strip strong{font-size:2rem;color:#73102f}.executive-strip span{color:#6d625d}
+.mission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.mission-grid article{padding:28px;border:1px solid #ead8b7;border-radius:24px;background:#fff;box-shadow:0 15px 40px rgba(67,31,14,.07)}
+.mission-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;color:#fff;background:linear-gradient(135deg,#8b1538,#b48732);margin-bottom:18px}
+.mission-grid small,.directory-section small{color:#a27625;font-weight:700}.mission-grid h3{margin:8px 0}.mission-grid p{min-height:54px;color:#655b57}.mission-grid strong{color:#8b1538}
+.abbot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}.abbot-grid article{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center;padding:24px;border-radius:24px;background:#fff;border:1px solid #ead8b7}
+.portrait{display:grid;place-items:center;aspect-ratio:4/5;overflow:hidden;border-radius:18px;background:linear-gradient(145deg,#f6ead3,#ead3a3);color:#8b1538}.portrait img{width:100%;height:100%;object-fit:cover}.portrait svg{width:45%;height:45%}
+.monastic-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.monastic-grid article{text-align:center;padding:16px;border:1px solid #ead8b7;border-radius:20px;background:#fff}.monastic-grid .portrait{margin-bottom:15px}
+.directory-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:38px;border:1px dashed #c8a964;border-radius:22px;color:#75685e}.directory-empty svg{color:#8b1538;width:40px;height:40px}
+.registry-tabs{grid-template-columns:repeat(4,1fr)}.registry-editor{display:grid;gap:18px}.registry-editor>article{display:grid;grid-template-columns:190px 1fr;gap:22px;padding:20px;border:1px solid #eadfd5;border-radius:20px;background:#fff}
+.temple-alert{border-radius:28px!important;border:1px solid #d8b66c!important;padding:28px!important;background:linear-gradient(160deg,#fff,#fff9ee)!important}
+.temple-alert .swal2-title{color:#67102c!important;font-family:inherit!important}.alert-seal{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#7a1233,#ad7d27);color:#fff;font-size:28px;font-weight:800;box-shadow:0 8px 25px rgba(122,18,51,.24)}
+.temple-alert-confirm,.temple-alert-cancel{border:0;border-radius:14px;padding:12px 22px;font:700 1rem inherit;cursor:pointer}.temple-alert-confirm{color:#fff;background:linear-gradient(135deg,#7a1233,#9b2448)}.temple-alert-cancel{color:#6e1732;background:#f6e8ed;margin-right:10px}
+@media(max-width:900px){.executive-strip,.mission-grid{grid-template-columns:repeat(2,1fr)}.monastic-grid{grid-template-columns:repeat(2,1fr)}.abbot-grid{grid-template-columns:1fr}.registry-tabs{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.executive-strip,.mission-grid,.monastic-grid{grid-template-columns:1fr}.abbot-grid article,.registry-editor>article{grid-template-columns:1fr}.abbot-grid .portrait{max-width:180px}.registry-tabs{grid-template-columns:1fr}}
